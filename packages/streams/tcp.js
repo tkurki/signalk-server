@@ -84,7 +84,7 @@ TcpStream.prototype.pipe = function (pipeTo) {
     }
     tcpStream.on('data', data => {
       if (debugData.enabled) {
-        debugData(data.toString())
+        debugData(JSON.stringify(data))
       }
       this.write(data)
     })
