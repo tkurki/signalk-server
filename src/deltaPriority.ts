@@ -63,6 +63,7 @@ export type ToPreferredDelta = (
 
 export const getToPreferredDelta = (
   sourcePrioritiesData: SourcePrioritiesData,
+  context: Context,
   unknownSourceTimeout: number = 10000
 ): ToPreferredDelta => {
   if (!sourcePrioritiesData) {
@@ -86,6 +87,9 @@ export const getToPreferredDelta = (
     }
     pathLatestTimestamps.set(path, { sourceRef, timestamp: millis })
   }
+
+  const now = Date.now()
+  Object.keys(sourcePrioritiesData).forEach((path)=> setLatest(context, path as Path, sourcePrioritiesData[path][0].sourceRef, now))
 
   const getLatest = (context: Context, path: Path): TimestampedSource => {
     const pathLatestTimestamps = contextPathTimestamps.get(context)
