@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { connect } from 'react-redux'
 import {
   Card,
@@ -8,61 +8,18 @@ import {
   Button,
   Input,
 } from 'reactstrap'
-import { AgGridReact } from 'ag-grid-react' // React Grid Logic
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
 
-/* Javascript files */
-import columnDefs from '../Grid/columnDefs'
-
-/* Components */
 import WarningBox from './WarningBox'
 
-/* Styling */
 import '../appStore.scss'
+import AppsList from '../AppsList'
 
-/** Main component */
 const Apps = function (props) {
-  /** State */
-  const [selectedView, setSelectedView] = useState('All')
-  const [selectedTag, setSelectedTag] = useState('All')
-
-  /* Effects / Watchers */
-  useEffect(() => {
-    const handleResize = () => {
-      // Perform actions on window resize
-      toggleColumnsOnMobile(window.innerWidth)
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (selectedView === 'All') {
-      refreshGridData(selectedTag, deriveAppList())
-    } else if (selectedView === 'Installed') {
-      refreshGridData(
-        selectedTag,
-        deriveAppList().filter((el) => el.installedVersion || el.installing)
-      )
-    } else if (selectedView === 'Updates') {
-      refreshGridData(
-        selectedTag,
-        deriveAppList().filter(
-          (el) => el.installedVersion && el.version !== el.installedVersion
-        )
-      )
-    }
-    return () => {}
-  }, [
-    selectedTag,
-    selectedView,
-    props.appStore.installed,
-    props.appStore.available,
-  ])
+  const [view, setSelectedView] = useState('All')
+  const [category, setSelectedCategory] = useState('All')
+  const [search, setSearch] = useState(() => '')
 
   const deriveAppList = () => {
     const allApps = props.appStore.available.reduce((acc, app) => {
@@ -83,59 +40,11 @@ const Apps = function (props) {
     return Object.values(allApps)
   }
 
-  /** Grid Element */
-  const gridRef = useRef()
-  const [rowData, setRowData] = useState(() => deriveAppList())
-
-  const autoSizeStrategy = {
-    type: 'fitGridWidth',
-    defaultMinWidth: 100,
-    columnLimits: [],
-  }
-
-  /** Methods */
-  const onSearchTextBoxChanged = useCallback(() => {
-    gridRef.current.api.setGridOption(
-      'quickFilterText',
-      document.getElementById('search-text-box').value
-    )
-  }, [])
-
-  /**
-   * Set the rowData with the filter selected
-   */
-  const refreshGridData = useCallback((item, gridData) => {
-    if (!item || item === 'All') return setRowData(gridData)
-    let newData = []
-    newData = gridData.filter((el) => el.categories.includes(item))
-    setRowData(newData)
-  })
-
-  /** Hide columns if widow is small than a threshold */
-  const toggleColumnsOnMobile = (innerWidth) => {
-    gridRef.current.api.applyColumnState({
-      state: [
-        { colId: 'description', hide: innerWidth < 768 },
-        { colId: 'author', hide: innerWidth < 991 },
-        { colId: 'type', hide: innerWidth < 1024 },
-      ],
-    })
-  }
-
-  /** Callback called when the grid is ready */
-  const onGridReady = useCallback((params) => {
-    window.addEventListener('resize', () => {
-      setTimeout(() => {
-        params.api.sizeColumnsToFit()
-      })
-    })
-  }, [])
-
   const handleUpdateAll = () => {
     if (confirm(`Are you sure you want to install all updates?`)) {
       // Iterate over all apps to be updated
       for (const app of rowData) {
-        if (app.updateAvailable && app.installed) {
+        if (app.newVersion && app.installed) {
           fetch(
             `${window.serverRoutesPrefix}/appstore/install/${app.name}/${app.version}`,
             {
@@ -150,7 +59,7 @@ const Apps = function (props) {
 
   /* 
   Show different warning message
-  whether if the store is available or if an app was installed or removed
+  whether the store is available or if an app was installed or removed
   */
   let warning
   if (props.appStore.storeAvailable === false) {
@@ -160,6 +69,26 @@ const Apps = function (props) {
       'Please restart the server after installing, updating or deleting a plugin'
   }
 
+  const selectedViewFilter = selectedViewToFilter(view)
+  const selectedCategoryFilter =
+    category === 'All'
+      ? () => true
+      : (app) => app.categories.includes(category)
+  const textSearchFilter =
+    search === ''
+      ? () => true
+      : (app) => {
+          const lower = search.toLowerCase()
+          return (
+            app.name.toLowerCase().indexOf(lower) >= 0 ||
+            (app.description &&
+              app.description.toLowerCase().indexOf(lower) >= 0)
+          )
+        }
+  const rowData = deriveAppList()
+    .filter(selectedViewFilter)
+    .filter(selectedCategoryFilter)
+    .filter(textSearchFilter)
   return (
     <div className="appstore animated fadeIn">
       <section className="appstore__warning section">
@@ -172,19 +101,19 @@ const Apps = function (props) {
             <CardTitle>Apps & Plugins</CardTitle>
             {/* <h3 className="title"></h3> */}
             <Button
-              color={selectedView === 'All' ? 'primary' : 'secondary'}
+              color={view === 'All' ? 'primary' : 'secondary'}
               onClick={() => setSelectedView('All')}
             >
               All
             </Button>
             <Button
-              color={selectedView === 'Installed' ? 'primary' : 'secondary'}
+              color={view === 'Installed' ? 'primary' : 'secondary'}
               onClick={() => setSelectedView('Installed')}
             >
               Installed
             </Button>
             <Button
-              color={selectedView === 'Updates' ? 'primary' : 'secondary'}
+              color={view === 'Updates' ? 'primary' : 'secondary'}
               onClick={() => setSelectedView('Updates')}
             >
               Updates
@@ -197,7 +126,7 @@ const Apps = function (props) {
           </div>
 
           <div className="action__container">
-            {selectedView == 'Updates' && props.appStore.updates.length > 0 ? (
+            {view == 'Updates' && props.appStore.updates.length > 0 ? (
               <Button color="success" onClick={handleUpdateAll}>
                 Update all
               </Button>
@@ -212,7 +141,10 @@ const Apps = function (props) {
                 id="search-text-box"
                 className="search__input"
                 placeholder="Search ..."
-                onInput={onSearchTextBoxChanged}
+                onInput={(e) => {
+                  setSearch(e.target.value)
+                }}
+                value={search}
               />
             </div>
           </div>
@@ -224,33 +156,32 @@ const Apps = function (props) {
               <Button
                 key={item}
                 color="primary"
-                className={selectedTag === item ? 'active' : undefined}
+                className={category === item ? 'active' : undefined}
                 outline
-                onClick={() => setSelectedTag(item)}
+                onClick={() => setSelectedCategory(item)}
               >
                 {item}
               </Button>
             ))}
           </section>
-          <section className="appstore__grid section">
-            <div
-              className="ag-theme-quartz ag-theme-signalk"
-              style={{ height: '100%' }}
-            >
-              <AgGridReact
-                ref={gridRef}
-                rowData={rowData}
-                columnDefs={columnDefs}
-                autoSizeStrategy={autoSizeStrategy}
-                onGridReady={onGridReady}
-                style={{ width: '100%', height: '100%' }}
-              />
+          <section className="appstore__grid">
+            <div style={{ height: '100%' }}>
+              <AppsList apps={rowData} />
             </div>
           </section>
         </CardBody>
       </Card>
     </div>
   )
+}
+
+const selectedViewToFilter = (selectedView) => {
+  if (selectedView === 'Installed') {
+    return (app) => app.installing || app.installedVersion
+  } else if (selectedView === 'Updates') {
+    return (app) => app.installedVersion && app.version !== app.installedVersion
+  }
+  return () => true
 }
 
 const mapStateToProps = ({ appStore }) => ({ appStore })
