@@ -1,0 +1,28 @@
+name: Test matric build
+on:
+  push:
+    branches:
+      - matrix-test
+
+jobs:
+  build:
+    strategy:
+          matrix:
+            include:
+              - os: ubuntu-latest
+                arch: amd64
+                platform: linux/amd64
+              - os: ubuntu-24.04-arm
+                arch: arm64
+                platform: linux/arm64
+              - os: ubuntu-24.04-arm
+                arch: armv7
+                platform: linux/arm/v7
+        
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: System information
+        run: |
+          cat /etc/os-release
+          echo ${{ matrix.arch}}
+          echo ${{ matrix.platform}}
