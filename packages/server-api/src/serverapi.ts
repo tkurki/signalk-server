@@ -5,6 +5,7 @@ import {
   PropertyValuesEmitter,
   ResourceProviderRegistry,
   WeatherProviderRegistry,
+  RadarProviderRegistry,
   Delta,
   WithResourcesApi
 } from '.'
@@ -35,6 +36,7 @@ export interface ServerAPI
     WithResourcesApi,
     AutopilotProviderRegistry,
     WeatherProviderRegistry,
+    RadarProviderRegistry,
     WithHistoryApi,
     HistoryApiRegistry,
     WithFeatures,
