@@ -781,8 +781,7 @@ module.exports = function (
       app.config.settings.trustProxy = settings.options.trustProxy
 =======
     if (!isUndefined(settings.options.enableWasmLogging)) {
-      app.config.settings.enableWasmLogging =
-        settings.options.enableWasmLogging
+      app.config.settings.enableWasmLogging = settings.options.enableWasmLogging
       // Update WASM debug logging dynamically
       updateWasmDebugLogging(settings.options.enableWasmLogging ?? true, app)
 >>>>>>> 0f38ceae (3.0.0-alpha.2)
