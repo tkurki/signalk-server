@@ -103,6 +103,7 @@
     "express-rate-limit": "^8.2.1",
     "figlet": "^1.2.0",
     "file-timestamp-stream": "^2.1.2",
+    "fix": "^0.0.6",
     "geolib": "3.2.2",
     "helmet": "^8.1.0",
     "inquirer": "^7.0.0",
