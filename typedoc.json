@@ -67,12 +67,19 @@
   "darkHighlightTheme": "github-dark-dimmed",
   "highlightLanguages": [
     "bash",
-    "shell",
-    "sh",
+    "csharp",
+    "go",
     "json",
     "javascript",
     "typescript",
-    "nginx"
+    "nginx",
+    "powershell",
+    "rust",
+    "shell",
+    "sh",
+    "toml",
+    "wit",
+    "xml"
   ],
   "cacheBust": true
 }
