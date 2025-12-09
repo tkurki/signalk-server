@@ -5,3 +5,4 @@ public
 **/*.pmtiles
 # AssemblyScript files use decorators that prettier doesn't understand
 examples/wasm-plugins/*/assembly
+packages/assemblyscript-plugin-sdk/assembly
