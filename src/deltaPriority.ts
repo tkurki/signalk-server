@@ -57,6 +57,13 @@ export type ToPreferredDelta = (
   selfContext: string
 ) => any
 
+const getHighestPrioritySourceRef = (path: Path, sourcePrioritiesData: SourcePrioritiesData) => {
+  const pathPrecedences = sourcePrioritiesData[path]
+  if (!pathPrecedences || pathPrecedences.length === 0) {
+    return undefined
+  }
+  return pathPrecedences[0].sourceRef
+}
 export const getToPreferredDelta = (
   sourcePrioritiesData: SourcePrioritiesData,
   unknownSourceTimeout = 10000
@@ -83,17 +90,35 @@ export const getToPreferredDelta = (
     pathLatestTimestamps.set(path, { sourceRef, timestamp: millis })
   }
 
+  const initializeWithHighestPrioritySource = (
+    context: Context,
+    path: Path
+  ): TimestampedSource | undefined => {
+    const highestPrioritySourceRef = getHighestPrioritySourceRef(path, sourcePrioritiesData)
+    if (highestPrioritySourceRef) {
+      const now = Date.now()
+      setLatest(context, path, highestPrioritySourceRef, now)
+      return {
+        sourceRef: highestPrioritySourceRef,
+        timestamp: now
+      }
+    }
+    return undefined
+  }
+
   const getLatest = (context: Context, path: Path): TimestampedSource => {
     const pathLatestTimestamps = contextPathTimestamps.get(context)
     if (!pathLatestTimestamps) {
-      return {
+      const initialized = initializeWithHighestPrioritySource(context, path)
+      return initialized ?? {
         sourceRef: '' as SourceRef,
         timestamp: 0
       }
     }
     const latestTimestamp = pathLatestTimestamps.get(path)
     if (!latestTimestamp) {
-      return {
+      const initialized = initializeWithHighestPrioritySource(context, path)
+      return initialized ?? {
         sourceRef: '' as SourceRef,
         timestamp: 0
       }

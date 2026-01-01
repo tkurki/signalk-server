@@ -82,6 +82,7 @@ describe('toPreferredDelta logic', () => {
       }, totalDelay)
     }
 
+    push('b', 10, false)
     push('a', 0, true)
     push('b', 50, false)
     push('c', 50, false)
