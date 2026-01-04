@@ -236,7 +236,9 @@ export async function loadStandardPlugin(
     asyncifyResumeFunction,
     (fn) => {
       asyncifyResumeFunction = fn
-    }
+    },
+    fetchHandler,
+    capabilities
   )
 
   // Create setter for asyncify resume that can be used by external callers
@@ -276,7 +278,9 @@ function createPluginExports(
   asLoaderInstance: any,
   rawExports: any,
   asyncifyResumeFunction: (() => any) | null,
-  setAsyncifyResume: (fn: (() => any) | null) => void
+  setAsyncifyResume: (fn: (() => any) | null) => void,
+  fetchHandler: any,
+  capabilities: WasmCapabilities
 ) {
   let idFunc: () => string
   let nameFunc: () => string
@@ -300,6 +304,19 @@ function createPluginExports(
 
     startFunc = async (config: string) => {
       debug(`Calling plugin_start with config: ${config.substring(0, 100)}...`)
+
+      // Re-initialize as-fetch handler to refresh ASYNCIFY_MEM view
+      // This is needed because memory may have grown since init(), detaching the old buffer view
+      if (fetchHandler && capabilities.network) {
+        debug(`Re-initializing as-fetch handler before plugin_start`)
+        fetchHandler.init(rawExports, () => {
+          debug(`FetchHandler calling main function to resume execution`)
+          if (asyncifyResumeFunction) {
+            asyncifyResumeFunction()
+          }
+        })
+      }
+
       const encoder = new TextEncoder()
       const configBytes = encoder.encode(config)
       const configLen = configBytes.length
@@ -317,14 +334,26 @@ function createPluginExports(
 
       setAsyncifyResume(() => {
         debug(`Re-calling plugin_start to resume from rewind state`)
-        const resumeResult = asLoaderInstance.exports.plugin_start(
-          configPtr,
-          configLen
-        )
-        if (resumePromiseResolve) {
-          resumePromiseResolve()
+        try {
+          // Re-read memory buffer in case it was detached during async operation
+          const currentMemory = asLoaderInstance.exports.memory.buffer
+          debug(`Memory buffer size: ${currentMemory.byteLength}, configPtr: ${configPtr}, configLen: ${configLen}`)
+
+          const resumeResult = asLoaderInstance.exports.plugin_start(
+            configPtr,
+            configLen
+          )
+          if (resumePromiseResolve) {
+            resumePromiseResolve()
+          }
+          return resumeResult
+        } catch (err: any) {
+          debug(`Error during Asyncify rewind: ${err.message}`)
+          if (resumePromiseResolve) {
+            resumePromiseResolve()
+          }
+          throw err
         }
-        return resumeResult
       })
 
       const result = asLoaderInstance.exports.plugin_start(configPtr, configLen)
