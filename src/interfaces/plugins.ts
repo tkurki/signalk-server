@@ -306,7 +306,24 @@ module.exports = (theApp: any) => {
     app.pluginsMap = {}
     // Expose getPluginOptions for use by other modules (e.g., webapps.js)
     app.getPluginOptions = getPluginOptions
-    const modules = modulesWithKeyword(app.config, 'signalk-node-server-plugin')
+
+    // Discover both Node.js and WASM plugins
+    const jsModules = modulesWithKeyword(
+      app.config,
+      'signalk-node-server-plugin'
+    )
+    const wasmModules = modulesWithKeyword(app.config, 'signalk-wasm-plugin')
+
+    // Combine and deduplicate by module name (a plugin might have both keywords)
+    const seenModules = new Set<string>()
+    const modules = [...jsModules, ...wasmModules].filter((moduleData: any) => {
+      if (seenModules.has(moduleData.module)) {
+        return false
+      }
+      seenModules.add(moduleData.module)
+      return true
+    })
+
     await Promise.all(
       modules.map((moduleData: any) => {
         return registerPlugin(

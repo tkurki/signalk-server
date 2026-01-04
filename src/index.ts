@@ -72,7 +72,6 @@ import helmet from 'helmet'
 const debug = createDebug('signalk-server')
 
 import { StreamBundle } from './streambundle'
-// WASM shutdown is now handled by the wasm interface (src/interfaces/wasm.ts)
 
 class Server {
   app: ServerApp &
@@ -184,8 +183,6 @@ class Server {
         }, [])
     }
     Object.assign(app, pluginManager)
-
-    // WASM runtime is now initialized by the wasm interface (src/interfaces/wasm.ts)
 
     app.setPluginStatus = (providerId: string, statusMessage: string) => {
       doSetProviderStatus(providerId, statusMessage, 'status', 'plugin')
@@ -570,8 +567,6 @@ class Server {
       this.app.providers.forEach((providerHolder) => {
         providerHolder.pipeElements[0].end()
       })
-
-      // WASM shutdown is now handled by the wasm interface stop() method
 
       debug('Closing server...')
 

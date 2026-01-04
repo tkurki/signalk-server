@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "Anchor Watch WASM plugin built with C#/.NET 10 - monitors vessel position relative to anchor",
   "keywords": [
-    "signalk-node-server-plugin",
     "signalk-wasm-plugin"
   ],
   "wasmManifest": "jco-output/dotnet.js",
