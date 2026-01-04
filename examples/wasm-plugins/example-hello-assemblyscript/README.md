@@ -93,17 +93,21 @@ Example heartbeat delta:
 ```json
 {
   "context": "vessels.self",
-  "updates": [{
-    "source": {"label": "hello-assemblyscript", "type": "plugin"},
-    "values": [{
-      "path": "plugins.hello-assemblyscript.heartbeat",
-      "value": {
-        "count": 1,
-        "message": "Hello from AssemblyScript!",
-        "intervalMs": 5000
-      }
-    }]
-  }]
+  "updates": [
+    {
+      "source": { "label": "hello-assemblyscript", "type": "plugin" },
+      "values": [
+        {
+          "path": "plugins.hello-assemblyscript.heartbeat",
+          "value": {
+            "count": 1,
+            "message": "Hello from AssemblyScript!",
+            "intervalMs": 5000
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -111,7 +115,7 @@ Example heartbeat delta:
 
 The plugin exposes two REST API endpoints:
 
-**GET /plugins/_signalk_example-hello-assemblyscript/api/info**
+**GET /plugins/\_signalk_example-hello-assemblyscript/api/info**
 
 ```bash
 curl http://localhost:3000/plugins/_signalk_example-hello-assemblyscript/api/info
@@ -129,7 +133,7 @@ Returns:
 }
 ```
 
-**GET /plugins/_signalk_example-hello-assemblyscript/api/status**
+**GET /plugins/\_signalk_example-hello-assemblyscript/api/status**
 
 ```bash
 curl http://localhost:3000/plugins/_signalk_example-hello-assemblyscript/api/status
@@ -147,10 +151,10 @@ Returns:
 
 ## Configuration
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `message` | string | "Hello from AssemblyScript!" | Welcome message shown in notifications |
-| `updateInterval` | number | 5000 | Interval in milliseconds between heartbeat deltas |
+| Option           | Type   | Default                      | Description                                       |
+| ---------------- | ------ | ---------------------------- | ------------------------------------------------- |
+| `message`        | string | "Hello from AssemblyScript!" | Welcome message shown in notifications            |
+| `updateInterval` | number | 5000                         | Interval in milliseconds between heartbeat deltas |
 
 Configure via the Signal K Admin UI under **Server → Plugin Config**.
 
@@ -172,14 +176,14 @@ example-hello-assemblyscript/
 
 The plugin exports these functions for the Signal K server:
 
-| Export | Description |
-|--------|-------------|
-| `plugin_name()` | Returns the human-readable plugin name |
-| `plugin_schema()` | Returns JSON schema for configuration UI |
-| `plugin_start(config)` | Called when plugin is enabled |
-| `plugin_stop()` | Called when plugin is disabled |
-| `poll()` | Called every ~1 second for periodic tasks |
-| `http_endpoints()` | Returns JSON array of HTTP endpoint definitions |
+| Export                 | Description                                     |
+| ---------------------- | ----------------------------------------------- |
+| `plugin_name()`        | Returns the human-readable plugin name          |
+| `plugin_schema()`      | Returns JSON schema for configuration UI        |
+| `plugin_start(config)` | Called when plugin is enabled                   |
+| `plugin_stop()`        | Called when plugin is disabled                  |
+| `poll()`               | Called every ~1 second for periodic tasks       |
+| `http_endpoints()`     | Returns JSON array of HTTP endpoint definitions |
 
 ### Debugging
 

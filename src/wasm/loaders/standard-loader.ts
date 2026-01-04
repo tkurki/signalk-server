@@ -81,7 +81,9 @@ export async function loadStandardPlugin(
   const isRustPlugin = hasStart
   // AssemblyScript plugins must have plugin_name and plugin_start (plugin_id is optional)
   const isAssemblyScriptPlugin =
-    (hasPluginId || (hasPluginName && hasPluginStart)) && !hasAllocate && !hasStart
+    (hasPluginId || (hasPluginName && hasPluginStart)) &&
+    !hasAllocate &&
+    !hasStart
 
   debug(
     `Plugin type detection: AS=${isAssemblyScriptPlugin}, RustLib=${isRustLibraryPlugin}, RustCmd=${isRustPlugin}`
