@@ -337,7 +337,9 @@ function createPluginExports(
         try {
           // Re-read memory buffer in case it was detached during async operation
           const currentMemory = asLoaderInstance.exports.memory.buffer
-          debug(`Memory buffer size: ${currentMemory.byteLength}, configPtr: ${configPtr}, configLen: ${configLen}`)
+          debug(
+            `Memory buffer size: ${currentMemory.byteLength}, configPtr: ${configPtr}, configLen: ${configLen}`
+          )
 
           const resumeResult = asLoaderInstance.exports.plugin_start(
             configPtr,
