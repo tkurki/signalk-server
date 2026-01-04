@@ -56,11 +56,14 @@ npm run build
 
 ## Installation
 
+**Note:** The AssemblyScript Plugin SDK is not yet published to npm. Install it first - see [example-hello-assemblyscript](../example-hello-assemblyscript/README.md#installing-to-signal-k) for instructions.
+
 1. Build the plugin
-2. Copy or symlink to your Signal K server's node_modules:
+2. Create installable package and install:
    ```bash
-   cd ~/.signalk/node_modules
-   ln -s /path/to/example-routes-waypoints @signalk/example-routes-waypoints
+   npm pack
+   cd ~/.signalk
+   npm install /path/to/signalk-example-routes-waypoints-0.1.0.tgz
    ```
 3. Restart Signal K server
 4. Enable the plugin in the Admin UI

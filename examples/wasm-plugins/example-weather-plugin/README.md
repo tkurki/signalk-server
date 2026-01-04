@@ -45,11 +45,14 @@ npm run build
 
 ## Installation
 
+**Note:** The AssemblyScript Plugin SDK is not yet published to npm. Install it first - see [example-hello-assemblyscript](../example-hello-assemblyscript/README.md#installing-to-signal-k) for instructions.
+
 1. Build the plugin
-2. Symlink or copy to Signal K:
+2. Create installable package and install:
    ```bash
-   cd ~/.signalk/node_modules
-   ln -s /path/to/example-weather-plugin @signalk/example-weather-plugin
+   npm pack
+   cd ~/.signalk
+   npm install /path/to/signalk-example-weather-plugin-0.2.0.tgz
    ```
 3. Restart Signal K server
 4. Enable and configure in Admin UI

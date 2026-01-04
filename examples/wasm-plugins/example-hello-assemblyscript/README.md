@@ -35,13 +35,26 @@ npm run asbuild:debug
 
 ## Installing to Signal K
 
+**Note:** The AssemblyScript Plugin SDK is not yet published to npm. You must install it first.
+
+### Step 1: Install the SDK
+
+```bash
+cd /path/to/signalk-server/packages/assemblyscript-plugin-sdk
+npm pack
+
+cd ~/.signalk
+npm install /path/to/signalk-assemblyscript-plugin-sdk-0.2.0.tgz
+```
+
+### Step 2: Install the plugin
+
 Option 1: Using npm pack (recommended)
 
 ```bash
-# Create installable package
+cd /path/to/example-hello-assemblyscript
 npm pack
 
-# Install to your Signal K config directory
 cd ~/.signalk
 npm install /path/to/signalk-example-hello-assemblyscript-0.1.0.tgz
 ```
@@ -49,7 +62,6 @@ npm install /path/to/signalk-example-hello-assemblyscript-0.1.0.tgz
 Option 2: Manual copy
 
 ```bash
-# Copy to Signal K plugins directory
 mkdir -p ~/.signalk/node_modules/@signalk/example-hello-assemblyscript
 cp plugin.wasm package.json ~/.signalk/node_modules/@signalk/example-hello-assemblyscript/
 ```
