@@ -28,6 +28,10 @@ class HelloConfig {
   enableDebugLogging: boolean = false
 }
 
+// Track elapsed time for polling (server calls poll() every ~1000ms)
+let elapsedMs: i32 = 0
+let pollCount: i32 = 0
+
 /**
  * Hello World Plugin Implementation
  */
@@ -88,14 +92,35 @@ class HelloPlugin extends Plugin {
       this.config.enableDebugLogging = true
     }
 
+    // Parse updateInterval from config (basic string parsing)
+    const intervalKey = '"updateInterval":'
+    const intervalIdx = configJson.indexOf(intervalKey)
+    if (intervalIdx >= 0) {
+      const startIdx = intervalIdx + intervalKey.length
+      let endIdx = startIdx
+      while (endIdx < configJson.length) {
+        const c = configJson.charCodeAt(endIdx)
+        if (c < 48 || c > 57) break // Not a digit (0-9)
+        endIdx++
+      }
+      if (endIdx > startIdx) {
+        const intervalStr = configJson.substring(startIdx, endIdx)
+        this.config.updateInterval = i32(parseInt(intervalStr) as i32)
+      }
+    }
+
+    // Reset poll counters
+    elapsedMs = 0
+    pollCount = 0
+
     this.logDebug('========================================')
     this.logDebug('Hello AssemblyScript plugin starting...')
-    this.logDebug(`Plugin ID: ${this.id()}`)
     this.logDebug(`Plugin Name: ${this.name()}`)
     this.logDebug(`Configuration received: ${configJson}`)
     this.logDebug(
       `Debug logging: ${this.config.enableDebugLogging ? 'ENABLED' : 'DISABLED'}`
     )
+    this.logDebug(`Update interval: ${this.config.updateInterval}ms`)
     this.logDebug('========================================')
 
     setStatus('Started successfully')
@@ -121,7 +146,6 @@ class HelloPlugin extends Plugin {
   stop(): i32 {
     this.logDebug('========================================')
     this.logDebug('Hello AssemblyScript plugin stopping...')
-    this.logDebug(`Plugin ID: ${this.id()}`)
     setStatus('Stopped')
     this.logDebug('Status set to: Stopped')
     this.logDebug('Hello AssemblyScript plugin stopped successfully!')
@@ -139,7 +163,7 @@ class HelloPlugin extends Plugin {
       this.config.message
     )
 
-    const source = new Source(this.id(), 'plugin')
+    const source = new Source('hello-assemblyscript', 'plugin')
     const timestamp = getCurrentTimestamp()
     this.logDebug(`Timestamp: ${timestamp}`)
 
@@ -162,12 +186,11 @@ class HelloPlugin extends Plugin {
     this.logDebug('Building plugin info delta...')
     const pluginInfo = `{
       "name": "${this.name()}",
-      "id": "${this.id()}",
       "language": "AssemblyScript",
       "version": "0.1.0"
     }`
 
-    const source = new Source(this.id(), 'plugin')
+    const source = new Source('hello-assemblyscript', 'plugin')
     const timestamp = getCurrentTimestamp()
     this.logDebug(`Timestamp: ${timestamp}`)
 
@@ -183,6 +206,43 @@ class HelloPlugin extends Plugin {
     this.logDebug(
       '✓ Plugin info delta emitted to path: plugins.hello-assemblyscript.info'
     )
+  }
+
+  /**
+   * Emit a periodic heartbeat delta
+   */
+  emitHeartbeat(): void {
+    pollCount++
+    this.logDebug(`Heartbeat #${pollCount}`)
+
+    const source = new Source('hello-assemblyscript', 'plugin')
+    const timestamp = getCurrentTimestamp()
+
+    const heartbeatValue = `{
+      "count": ${pollCount},
+      "message": "${this.config.message}",
+      "intervalMs": ${this.config.updateInterval}
+    }`
+
+    const pathValue = new PathValue(
+      'plugins.hello-assemblyscript.heartbeat',
+      heartbeatValue
+    )
+
+    const update = new Update(source, timestamp, [pathValue])
+    const delta = new Delta('vessels.self', [update])
+
+    emit(delta)
+    this.logDebug(
+      `✓ Heartbeat delta emitted to path: plugins.hello-assemblyscript.heartbeat`
+    )
+  }
+
+  /**
+   * Get update interval for polling
+   */
+  getUpdateInterval(): i32 {
+    return this.config.updateInterval
   }
 }
 
@@ -215,6 +275,23 @@ export function plugin_start(configPtr: usize, configLen: usize): i32 {
 
 export function plugin_stop(): i32 {
   return plugin.stop()
+}
+
+/**
+ * Poll function - called by server every ~1000ms
+ * Emits heartbeat delta when updateInterval has elapsed
+ */
+export function poll(): i32 {
+  // Server calls poll() every ~1000ms
+  elapsedMs += 1000
+
+  // Check if it's time to emit a heartbeat
+  if (elapsedMs >= plugin.getUpdateInterval()) {
+    plugin.emitHeartbeat()
+    elapsedMs = 0
+  }
+
+  return 0 // Success
 }
 
 /**

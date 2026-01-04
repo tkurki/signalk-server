@@ -4,17 +4,16 @@ A minimal example of a Signal K WASM plugin written in AssemblyScript.
 
 ## Features
 
-- ✅ Demonstrates AssemblyScript plugin structure
-- ✅ Emits delta messages
-- ✅ Creates notifications
-- ✅ Uses configuration
-- ✅ **HTTP Endpoints** (Phase 2) - Custom REST API
-- ✅ Tiny binary size (~5-10 KB)
+- Demonstrates AssemblyScript plugin structure
+- Emits delta messages on startup and periodically via `poll()`
+- Creates notifications
+- Configurable update interval for periodic heartbeats
+- HTTP Endpoints - Custom REST API
+- Tiny binary size (~18 KB)
 
 ## Prerequisites
 
 - Node.js >= 20
-- AssemblyScript compiler
 
 ## Building
 
@@ -24,29 +23,45 @@ npm install
 
 # Build release version
 npm run build
+```
 
-# Build debug version
+This creates `plugin.wasm` in the current directory.
+
+For debug builds with additional symbols:
+
+```bash
 npm run asbuild:debug
 ```
 
-This will create `plugin.wasm` in the current directory.
-
 ## Installing to Signal K
+
+Option 1: Using npm pack (recommended)
+
+```bash
+# Create installable package
+npm pack
+
+# Install to your Signal K config directory
+cd ~/.signalk
+npm install /path/to/signalk-example-hello-assemblyscript-0.1.0.tgz
+```
+
+Option 2: Manual copy
 
 ```bash
 # Copy to Signal K plugins directory
 mkdir -p ~/.signalk/node_modules/@signalk/example-hello-assemblyscript
-cp plugin.wasm ~/.signalk/node_modules/@signalk/example-hello-assemblyscript/
-cp package.json ~/.signalk/node_modules/@signalk/example-hello-assemblyscript/
+cp plugin.wasm package.json ~/.signalk/node_modules/@signalk/example-hello-assemblyscript/
 ```
 
 ## Enabling
 
 1. Navigate to **Server** → **Plugin Config** in Signal K admin UI
 2. Find "Hello AssemblyScript Plugin"
-3. Click **Enable**
-4. Configure the welcome message if desired
-5. Click **Submit**
+3. Enable the plugin
+4. Optionally enable "Debug logging" to see detailed output
+5. Configure the welcome message and update interval if desired
+6. Click **Submit**
 
 ## What It Does
 
@@ -54,24 +69,46 @@ When started, the plugin:
 
 1. Emits a welcome notification to `notifications.hello`
 2. Emits plugin information to `plugins.hello-assemblyscript.info`
-3. Registers HTTP endpoints for REST API access
-4. Logs debug messages to server logs
+3. Emits periodic heartbeat deltas to `plugins.hello-assemblyscript.heartbeat` (configurable interval)
+4. Registers HTTP endpoints for REST API access
+
+### Periodic Heartbeat
+
+The plugin demonstrates the `poll()` export which is called by the server every ~1 second. The plugin tracks elapsed time and emits a heartbeat delta when the configured `updateInterval` (default: 5000ms) has elapsed.
+
+Example heartbeat delta:
+
+```json
+{
+  "context": "vessels.self",
+  "updates": [{
+    "source": {"label": "hello-assemblyscript", "type": "plugin"},
+    "values": [{
+      "path": "plugins.hello-assemblyscript.heartbeat",
+      "value": {
+        "count": 1,
+        "message": "Hello from AssemblyScript!",
+        "intervalMs": 5000
+      }
+    }]
+  }]
+}
+```
 
 ### HTTP Endpoints
 
 The plugin exposes two REST API endpoints:
 
-**GET /plugins/hello-assemblyscript/api/info**
+**GET /plugins/_signalk_example-hello-assemblyscript/api/info**
 
 ```bash
-curl http://localhost:3000/plugins/hello-assemblyscript/api/info
+curl http://localhost:3000/plugins/_signalk_example-hello-assemblyscript/api/info
 ```
 
 Returns:
 
 ```json
 {
-  "pluginId": "hello-assemblyscript",
   "pluginName": "Hello AssemblyScript Plugin",
   "language": "AssemblyScript",
   "version": "0.1.0",
@@ -80,10 +117,10 @@ Returns:
 }
 ```
 
-**GET /plugins/hello-assemblyscript/api/status**
+**GET /plugins/_signalk_example-hello-assemblyscript/api/status**
 
 ```bash
-curl http://localhost:3000/plugins/hello-assemblyscript/api/status
+curl http://localhost:3000/plugins/_signalk_example-hello-assemblyscript/api/status
 ```
 
 Returns:
@@ -96,20 +133,14 @@ Returns:
 }
 ```
 
-## Important Notes
-
-### WASM Memory Limitations
-
-WASM plugins have a **~64KB buffer limitation** for stdin/memory operations in Node.js. For handling large data volumes (like log files), use a **hybrid approach**:
-
-- **WASM Plugin**: Registers endpoints and handles configuration
-- **Node.js Handler**: Server intercepts specific endpoints and handles I/O directly
-
-See [signalk-logviewer](https://github.com/SignalK/signalk-server/tree/master/packages/signalk-logviewer) for a real-world example of this pattern.
-
 ## Configuration
 
-Configure the plugin via the Signal K Admin UI under **Server → Plugin Config**. Configuration options are documented in the plugin's schema.
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `message` | string | "Hello from AssemblyScript!" | Welcome message shown in notifications |
+| `updateInterval` | number | 5000 | Interval in milliseconds between heartbeat deltas |
+
+Configure via the Signal K Admin UI under **Server → Plugin Config**.
 
 ## Development
 
@@ -121,44 +152,37 @@ example-hello-assemblyscript/
 │   └── index.ts          # Plugin implementation
 ├── package.json          # NPM package definition
 ├── asconfig.json         # AssemblyScript build config
-└── README.md            # This file
+├── plugin.wasm           # Compiled WASM binary (after build)
+└── README.md             # This file
 ```
 
-### Building for Production
+### Key Exports
 
-For the smallest possible binary:
+The plugin exports these functions for the Signal K server:
 
-```bash
-npm run asbuild:release
-```
-
-Then optimize with `wasm-opt`:
-
-```bash
-npx wasm-opt -Oz plugin.wasm -o plugin.wasm
-```
+| Export | Description |
+|--------|-------------|
+| `plugin_name()` | Returns the human-readable plugin name |
+| `plugin_schema()` | Returns JSON schema for configuration UI |
+| `plugin_start(config)` | Called when plugin is enabled |
+| `plugin_stop()` | Called when plugin is disabled |
+| `poll()` | Called every ~1 second for periodic tasks |
+| `http_endpoints()` | Returns JSON array of HTTP endpoint definitions |
 
 ### Debugging
 
-Build with debug symbols:
-
-```bash
-npm run asbuild:debug
-```
-
-Check server logs for debug messages:
+Enable debug logging in the plugin configuration, then check server logs:
 
 ```bash
 DEBUG=signalk:wasm:* npm start
 ```
 
-## Binary Size
+You'll see messages like:
 
-- **Debug build**: ~15-20 KB
-- **Release build**: ~5-10 KB
-- **Optimized with wasm-opt**: ~3-5 KB
-
-Compare to typical Rust WASM plugin: 50-200 KB
+```
+signalk:wasm:bindings [@signalk/example-hello-assemblyscript] Heartbeat #1
+signalk:wasm:bindings [@signalk/example-hello-assemblyscript] Emitting delta (v1): ...
+```
 
 ## License
 

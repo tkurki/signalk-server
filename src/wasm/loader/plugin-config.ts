@@ -8,11 +8,7 @@
 
 import Debug from 'debug'
 import { wasmPlugins } from './plugin-registry'
-import {
-  startWasmPlugin,
-  stopWasmPlugin,
-  stopAndRemoveWasmPluginWebapp
-} from './plugin-lifecycle'
+import { startWasmPlugin, stopWasmPlugin } from './plugin-lifecycle'
 import { getPluginStoragePaths, writePluginConfig } from '../wasm-storage'
 
 const debug = Debug('signalk:wasm:loader')
@@ -130,8 +126,7 @@ export async function setWasmPluginEnabled(
     debug(
       `setWasmPluginEnabled: Plugin should be disabled and is running, stopping...`
     )
-    // Use stopAndRemoveWasmPluginWebapp to also remove from webapp list (hotplug)
-    await stopAndRemoveWasmPluginWebapp(app, pluginId)
+    await stopWasmPlugin(pluginId)
     debug(`setWasmPluginEnabled: Plugin stopped, new status: ${plugin.status}`)
   } else {
     debug(

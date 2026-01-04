@@ -9,13 +9,10 @@
 import {
   startWasmPlugin,
   stopWasmPlugin,
-  stopAndRemoveWasmPluginWebapp,
   unloadWasmPlugin,
   reloadWasmPlugin,
   handleWasmPluginCrash,
-  shutdownAllWasmPlugins,
-  filterDisabledWasmWebapps,
-  discoverAndRegisterWasmPlugins
+  shutdownAllWasmPlugins
 } from './plugin-lifecycle'
 
 import { updateWasmPluginConfig, setWasmPluginEnabled } from './plugin-config'
@@ -26,8 +23,7 @@ initializeLifecycleFunctions(
   startWasmPlugin,
   updateWasmPluginConfig,
   unloadWasmPlugin,
-  stopWasmPlugin,
-  stopAndRemoveWasmPluginWebapp
+  stopWasmPlugin
 )
 
 // Export types
@@ -47,13 +43,10 @@ export {
 export {
   startWasmPlugin,
   stopWasmPlugin,
-  stopAndRemoveWasmPluginWebapp,
   unloadWasmPlugin,
   reloadWasmPlugin,
   handleWasmPluginCrash,
-  shutdownAllWasmPlugins,
-  filterDisabledWasmWebapps,
-  discoverAndRegisterWasmPlugins
+  shutdownAllWasmPlugins
 }
 
 // Export configuration functions

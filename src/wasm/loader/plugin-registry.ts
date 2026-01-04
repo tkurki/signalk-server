@@ -42,10 +42,6 @@ let _updateWasmPluginConfig: (
 ) => Promise<void>
 let _unloadWasmPlugin: (app: any, pluginId: string) => Promise<void>
 let _stopWasmPlugin: (pluginId: string) => Promise<void>
-let _stopAndRemoveWasmPluginWebapp: (
-  app: any,
-  pluginId: string
-) => Promise<void>
 
 /**
  * Initialize lifecycle function references (called from index.ts to resolve circular dependencies)
@@ -59,14 +55,12 @@ export function initializeLifecycleFunctions(
     configPath: string
   ) => Promise<void>,
   unloadWasmPlugin: (app: any, pluginId: string) => Promise<void>,
-  stopWasmPlugin: (pluginId: string) => Promise<void>,
-  stopAndRemoveWasmPluginWebapp: (app: any, pluginId: string) => Promise<void>
+  stopWasmPlugin: (pluginId: string) => Promise<void>
 ) {
   _startWasmPlugin = startWasmPlugin
   _updateWasmPluginConfig = updateWasmPluginConfig
   _unloadWasmPlugin = unloadWasmPlugin
   _stopWasmPlugin = stopWasmPlugin
-  _stopAndRemoveWasmPluginWebapp = stopAndRemoveWasmPluginWebapp
 }
 
 /**
@@ -245,8 +239,7 @@ export async function registerWasmPlugin(
         _updateWasmPluginConfig,
         _startWasmPlugin,
         _unloadWasmPlugin,
-        _stopWasmPlugin,
-        _stopAndRemoveWasmPluginWebapp
+        _stopWasmPlugin
       )
 
       debug(
@@ -333,8 +326,7 @@ export async function registerWasmPlugin(
       _updateWasmPluginConfig,
       _startWasmPlugin,
       _unloadWasmPlugin,
-      _stopWasmPlugin,
-      _stopAndRemoveWasmPluginWebapp
+      _stopWasmPlugin
     )
 
     debug(`Registered WASM plugin: ${pluginId} (${pluginName})`)

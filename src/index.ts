@@ -489,18 +489,6 @@ class Server {
 
         app.apis = await startApis(app)
         await startInterfaces(app)
-        // Filter out disabled plugin webapps after all interfaces have started
-        // This handles both Node.js plugins and WASM plugins
-        filterDisabledPluginWebapps(app)
-        try {
-          const { filterDisabledWasmWebapps } = require('./wasm')
-          filterDisabledWasmWebapps(app)
-        } catch (_err) {
-          // WASM support may not be available, ignore
-        }
-        // Emit filtered webapps list to update lastServerEvents cache
-        // This ensures new websocket clients receive the filtered list
-        emitFilteredWebappsList(app)
         startMdns(app)
         app.providers = pipedProviders(app as any).start()
 
@@ -655,76 +643,6 @@ function startRedirectToSsl(
   server.listen(port, () => {
     console.log(`Redirect server running on port ${port.toString()}`)
     cb(null, server)
-  })
-}
-
-/**
- * Filter out disabled plugin webapps from app.webapps array
- * Called after all interfaces have started to ensure plugins are registered
- */
-function filterDisabledPluginWebapps(app: any) {
-  if (!app.plugins) {
-    return
-  }
-
-  // Build set of plugin package names that are enabled
-  const enabledPluginNames = new Set<string>()
-  const allPluginNames = new Set<string>()
-
-  for (const plugin of app.plugins) {
-    if (plugin.packageName) {
-      allPluginNames.add(plugin.packageName)
-
-      // Check if plugin is enabled - handle both Node.js and WASM plugins
-      let isEnabled = false
-
-      if (plugin.type === 'wasm') {
-        // WASM plugin - check the enabled flag directly
-        isEnabled = plugin.enabled === true
-      } else {
-        // Node.js plugin - check saved config for enabled state
-        const pluginOptions = app.getPluginOptions?.(plugin.id)
-        isEnabled = pluginOptions?.enabled === true
-      }
-
-      if (isEnabled) {
-        enabledPluginNames.add(plugin.packageName)
-      }
-    }
-  }
-
-  // Filter webapps - keep non-plugins and enabled plugins only
-  if (app.webapps) {
-    app.webapps = app.webapps.filter((w: any) => {
-      const isPluginWebapp = allPluginNames.has(w.name)
-      if (!isPluginWebapp) return true // Keep non-plugin webapps
-      return enabledPluginNames.has(w.name)
-    })
-  }
-
-  // Filter embeddable webapps similarly
-  if (app.embeddablewebapps) {
-    app.embeddablewebapps = app.embeddablewebapps.filter((w: any) => {
-      const isPluginWebapp = allPluginNames.has(w.name)
-      if (!isPluginWebapp) return true
-      return enabledPluginNames.has(w.name)
-    })
-  }
-}
-
-/**
- * Emit filtered webapps list to update lastServerEvents cache
- * This ensures new websocket clients receive the filtered list
- */
-function emitFilteredWebappsList(app: any) {
-  const allWebapps: any[] = []
-    .concat(app.webapps || [])
-    .concat(app.embeddablewebapps || [])
-
-  app.emit('serverevent', {
-    type: 'RECEIVE_WEBAPPS_LIST',
-    from: 'signalk-server',
-    data: _.uniqBy(allWebapps, 'name')
   })
 }
 

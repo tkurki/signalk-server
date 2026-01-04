@@ -10,7 +10,7 @@
 
 import * as path from 'path'
 import * as express from 'express'
-import { NextFunction, Request, Response } from 'express'
+import { Request, Response } from 'express'
 import { spawn } from 'child_process'
 import * as readline from 'readline'
 import Debug from 'debug'
@@ -493,8 +493,7 @@ export function setupWasmPluginRoutes(
   ) => Promise<void>,
   startWasmPlugin: (app: any, pluginId: string) => Promise<void>,
   unloadWasmPlugin: (app: any, pluginId: string) => Promise<void>,
-  stopWasmPlugin: (pluginId: string) => Promise<void>,
-  stopAndRemoveWasmPluginWebapp?: (app: any, pluginId: string) => Promise<void>
+  stopWasmPlugin: (pluginId: string) => Promise<void>
 ): void {
   const router = express.Router()
 
@@ -609,57 +608,9 @@ export function setupWasmPluginRoutes(
           debug(`Plugin enabled, starting...`)
           await startWasmPlugin(app, plugin.id)
         } else if (!plugin.enabled && plugin.status === 'running') {
-          // Stop the plugin and remove webapp from list for hotplug support
-          // Keep routes intact for re-enabling
-          debug(`Plugin disabled, stopping and removing webapp (hotplug)...`)
-          if (stopAndRemoveWasmPluginWebapp) {
-            await stopAndRemoveWasmPluginWebapp(app, plugin.id)
-          } else {
-            await stopWasmPlugin(plugin.id)
-          }
+          debug(`Plugin disabled, stopping...`)
+          await stopWasmPlugin(plugin.id)
         }
-
-        // Emit server event to update admin UI webapps list (hotplug)
-        const { uniqBy } = require('lodash')
-        let allWebapps = []
-          .concat(app.webapps || [])
-          .concat(app.embeddablewebapps || [])
-
-        // Filter to only include enabled plugin webapps
-        if (app.plugins && app.getPluginOptions) {
-          const enabledPluginNames = new Set<string>()
-          const allPluginNames = new Set<string>()
-
-          for (const p of app.plugins) {
-            if (p.packageName) {
-              allPluginNames.add(p.packageName)
-
-              let isEnabled = false
-              if (p.type === 'wasm') {
-                isEnabled = p.enabled === true
-              } else {
-                const pluginOptions = app.getPluginOptions(p.id)
-                isEnabled = pluginOptions?.enabled === true
-              }
-
-              if (isEnabled) {
-                enabledPluginNames.add(p.packageName)
-              }
-            }
-          }
-
-          allWebapps = allWebapps.filter((w: any) => {
-            const isPluginWebapp = allPluginNames.has(w.name)
-            if (!isPluginWebapp) return true // Keep standalone webapps
-            return enabledPluginNames.has(w.name)
-          })
-        }
-
-        app.emit('serverevent', {
-          type: 'RECEIVE_WEBAPPS_LIST',
-          from: 'signalk-server',
-          data: uniqBy(allWebapps, 'name')
-        })
       }
 
       debug(
@@ -696,31 +647,8 @@ export function setupWasmPluginRoutes(
     })
   })
 
-  // Middleware to block requests when WASM plugin is disabled (except config endpoints)
-  const pluginEnabledMiddleware = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    // Always allow access to config endpoints for admin UI
-    if (req.path === '/config' || req.path === '/') {
-      return next()
-    }
-    if (!plugin.enabled) {
-      res.status(503).json({
-        error: `Plugin ${plugin.id} is disabled`
-      })
-      return
-    }
-    next()
-  }
-
   // Register the router for this plugin
-  app.use(
-    backwardsCompat(`/plugins/${plugin.id}`),
-    pluginEnabledMiddleware,
-    router
-  )
+  app.use(backwardsCompat(`/plugins/${plugin.id}`), router)
 
   // Store router in plugin object for later removal
   plugin.router = router

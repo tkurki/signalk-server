@@ -37,7 +37,7 @@ module.exports = (app: any) => {
   api.stop = () => {
     debug('Stopping WASM interface')
     try {
-      shutdownAllWasmPlugins(app)
+      shutdownAllWasmPlugins()
     } catch (error) {
       debug('WASM shutdown error:', error)
     }

@@ -70,13 +70,18 @@ export async function loadStandardPlugin(
   )
 
   // Detect plugin type
+  // Note: plugin_id is optional since ID can be derived from package.json name
   const hasPluginId = moduleExports.some((e) => e.name === 'plugin_id')
+  const hasPluginName = moduleExports.some((e) => e.name === 'plugin_name')
+  const hasPluginStart = moduleExports.some((e) => e.name === 'plugin_start')
   const hasAllocate = moduleExports.some((e) => e.name === 'allocate')
   const hasStart = moduleExports.some((e) => e.name === '_start')
 
   const isRustLibraryPlugin = hasPluginId && hasAllocate
   const isRustPlugin = hasStart
-  const isAssemblyScriptPlugin = hasPluginId && !hasAllocate && !hasStart
+  // AssemblyScript plugins must have plugin_name and plugin_start (plugin_id is optional)
+  const isAssemblyScriptPlugin =
+    (hasPluginId || (hasPluginName && hasPluginStart)) && !hasAllocate && !hasStart
 
   debug(
     `Plugin type detection: AS=${isAssemblyScriptPlugin}, RustLib=${isRustLibraryPlugin}, RustCmd=${isRustPlugin}`
