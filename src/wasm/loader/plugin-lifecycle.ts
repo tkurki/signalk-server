@@ -27,6 +27,10 @@ const pollTimers: Map<string, NodeJS.Timeout> = new Map()
 // Track delta subscription unsubscribe functions for plugins
 const deltaUnsubscribers: Map<string, () => void> = new Map()
 
+// Mutex for serializing network-capable plugin starts
+// as-fetch uses global state that gets corrupted with parallel plugin starts
+let networkPluginStartMutex: Promise<void> = Promise.resolve()
+
 /**
  * Start a WASM plugin
  */
@@ -44,6 +48,32 @@ export async function startWasmPlugin(
     return
   }
 
+  // Serialize starts for network-capable plugins to avoid as-fetch global state corruption
+  if (plugin.metadata?.capabilities?.network) {
+    debug(`Plugin ${pluginId} has network capability, waiting for mutex...`)
+    const previousMutex = networkPluginStartMutex
+    let releaseMutex: () => void
+    networkPluginStartMutex = new Promise((resolve) => {
+      releaseMutex = resolve
+    })
+    await previousMutex
+    debug(`Plugin ${pluginId} acquired start mutex`)
+    try {
+      await startWasmPluginInternal(app, plugin, pluginId)
+    } finally {
+      debug(`Plugin ${pluginId} releasing start mutex`)
+      releaseMutex!()
+    }
+  } else {
+    await startWasmPluginInternal(app, plugin, pluginId)
+  }
+}
+
+async function startWasmPluginInternal(
+  app: any,
+  plugin: WasmPlugin,
+  pluginId: string
+): Promise<void> {
   debug(`Starting WASM plugin: ${pluginId}`)
   setPluginStatus(plugin, 'starting')
   plugin.errorMessage = undefined

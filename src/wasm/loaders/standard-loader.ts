@@ -193,16 +193,9 @@ export async function loadStandardPlugin(
   // Store reference for Asyncify resume
   let asyncifyResumeFunction: (() => any) | null = null
 
-  // Initialize as-fetch handler
-  if (fetchHandler && capabilities.network) {
-    debug(`Initializing as-fetch handler with exports`)
-    fetchHandler.init(rawExports, () => {
-      debug(`FetchHandler calling main function to resume execution`)
-      if (asyncifyResumeFunction) {
-        asyncifyResumeFunction()
-      }
-    })
-  }
+  // NOTE: Do NOT initialize as-fetch handler here!
+  // as-fetch uses global state that gets corrupted if multiple plugins are loaded in parallel.
+  // The handler is initialized right before plugin_start() is called, protected by a mutex.
 
   // Initialize based on plugin type
   if (isRustPlugin) {
@@ -233,7 +226,7 @@ export async function loadStandardPlugin(
     isRustLibraryPlugin,
     asLoaderInstance,
     rawExports,
-    asyncifyResumeFunction,
+    () => asyncifyResumeFunction,
     (fn) => {
       asyncifyResumeFunction = fn
     },
@@ -277,7 +270,7 @@ function createPluginExports(
   isRustLibraryPlugin: boolean,
   asLoaderInstance: any,
   rawExports: any,
-  asyncifyResumeFunction: (() => any) | null,
+  getAsyncifyResume: () => (() => any) | null,
   setAsyncifyResume: (fn: (() => any) | null) => void,
   fetchHandler: any,
   capabilities: WasmCapabilities
@@ -311,8 +304,9 @@ function createPluginExports(
         debug(`Re-initializing as-fetch handler before plugin_start`)
         fetchHandler.init(rawExports, () => {
           debug(`FetchHandler calling main function to resume execution`)
-          if (asyncifyResumeFunction) {
-            asyncifyResumeFunction()
+          const resumeFn = getAsyncifyResume()
+          if (resumeFn) {
+            resumeFn()
           }
         })
       }
@@ -334,6 +328,20 @@ function createPluginExports(
 
       setAsyncifyResume(() => {
         debug(`Re-calling plugin_start to resume from rewind state`)
+
+        // Check Asyncify state - as-fetch calls asyncify_start_rewind() before calling us
+        // State 0 = normal (rewind already completed), skip to avoid double-rewind
+        // State 1 = unwound (shouldn't happen, as-fetch would have started rewind)
+        // State 2 = rewinding (expected, proceed with resume)
+        if (typeof asLoaderInstance.exports.asyncify_get_state === 'function') {
+          const currentState = asLoaderInstance.exports.asyncify_get_state()
+          if (currentState === 0) {
+            debug(`Plugin in normal state (state=0), rewind already completed, skipping`)
+            return
+          }
+          debug(`Asyncify state before resume: ${currentState}`)
+        }
+
         try {
           // Re-read memory buffer in case it was detached during async operation
           const currentMemory = asLoaderInstance.exports.memory.buffer
