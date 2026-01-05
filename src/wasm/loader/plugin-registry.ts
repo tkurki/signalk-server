@@ -10,6 +10,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import Debug from 'debug'
+import express from 'express'
 import { WasmPlugin } from './types'
 import { getWasmRuntime, WasmCapabilities } from '../wasm-runtime'
 import {
@@ -97,6 +98,65 @@ function addNodejsPluginCompat(plugin: WasmPlugin, pluginId: string): void {
 }
 
 /**
+ * Mount webapp static files and register with app.webapps for WASM plugins
+ * that have the signalk-webapp keyword
+ */
+function mountWasmWebapp(
+  app: any,
+  packageName: string,
+  packageJson: any,
+  location: string
+): void {
+  const keywords = packageJson.keywords || []
+
+  // Check if this is a webapp
+  if (!keywords.includes('signalk-webapp')) {
+    return
+  }
+
+  // Find public folder
+  const packagePath = path.join(location, packageName)
+  let webappPath = packagePath
+  if (fs.existsSync(path.join(packagePath, 'public'))) {
+    webappPath = path.join(packagePath, 'public')
+  }
+
+  // Mount static files
+  debug(`Mounting WASM webapp /${packageName}: ${webappPath}`)
+  app.use('/' + packageName, express.static(webappPath))
+
+  // Create webapp metadata for admin UI
+  const webappMetadata = {
+    name: packageName,
+    version: packageJson.version,
+    description: packageJson.description || '',
+    keywords: keywords,
+    signalk: packageJson.signalk || {}
+  }
+
+  // Register with app.webapps
+  if (!app.webapps) {
+    app.webapps = []
+  }
+  // Avoid duplicates
+  if (!app.webapps.find((w: any) => w.name === packageName)) {
+    app.webapps.push(webappMetadata)
+    debug(`Registered WASM webapp: ${packageName}`)
+  }
+
+  // Also register as embeddable webapp if it has that keyword
+  if (keywords.includes('signalk-embeddable-webapp')) {
+    if (!app.embeddablewebapps) {
+      app.embeddablewebapps = []
+    }
+    if (!app.embeddablewebapps.find((w: any) => w.name === packageName)) {
+      app.embeddablewebapps.push(webappMetadata)
+      debug(`Registered WASM embeddable webapp: ${packageName}`)
+    }
+  }
+}
+
+/**
  * Register a WASM plugin from package metadata
  */
 export async function registerWasmPlugin(
@@ -119,6 +179,10 @@ export async function registerWasmPlugin(
     }
 
     const wasmPath = path.join(location, packageName, packageJson.wasmManifest)
+
+    // Mount webapp static files if this is a signalk-webapp
+    mountWasmWebapp(app, packageName, packageJson, location)
+
     const capabilities: WasmCapabilities = {
       network: packageJson.wasmCapabilities?.network || false,
       storage: packageJson.wasmCapabilities?.storage || 'vfs-only',

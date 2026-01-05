@@ -336,7 +336,9 @@ function createPluginExports(
         if (typeof asLoaderInstance.exports.asyncify_get_state === 'function') {
           const currentState = asLoaderInstance.exports.asyncify_get_state()
           if (currentState === 0) {
-            debug(`Plugin in normal state (state=0), rewind already completed, skipping`)
+            debug(
+              `Plugin in normal state (state=0), rewind already completed, skipping`
+            )
             return
           }
           debug(`Asyncify state before resume: ${currentState}`)
