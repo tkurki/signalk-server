@@ -19,10 +19,7 @@ import {
 } from '@signalk/assemblyscript-plugin-sdk/assembly'
 
 // Emit a v1 delta (default - for regular navigation data)
-const tempDelta = createSimpleDelta(
-  'environment.outside.temperature',
-  '288.15'
-)
+const tempDelta = createSimpleDelta('environment.outside.temperature', '288.15')
 emit(tempDelta)
 
 // Emit a v2 delta (for Course API and v2-specific paths)
@@ -34,6 +31,7 @@ emit(courseDelta, SK_VERSION_V2)
 ```
 
 **Note:** Plugins should NOT include `source` or `timestamp` in emitted deltas. The server automatically:
+
 - Sets `$source` to the plugin ID
 - Fills in `timestamp` with the current time
 
@@ -136,7 +134,12 @@ Deltas received by `delta_handler()` include `source` and `timestamp` (added by 
   "updates": [
     {
       "$source": "n2k-on-ve.can-socket.43",
-      "source": { "label": "n2k-on-ve.can-socket", "type": "NMEA2000", "pgn": 129039, "src": "43" },
+      "source": {
+        "label": "n2k-on-ve.can-socket",
+        "type": "NMEA2000",
+        "pgn": 129039,
+        "src": "43"
+      },
       "timestamp": "2024-01-15T12:30:00.000Z",
       "values": [
         {
