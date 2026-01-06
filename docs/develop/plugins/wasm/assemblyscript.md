@@ -23,10 +23,8 @@ import {
   Delta,
   Update,
   PathValue,
-  Source,
   emit,
-  setStatus,
-  getCurrentTimestamp
+  setStatus
 } from '@signalk/assemblyscript-plugin-sdk/assembly'
 
 class MyPlugin extends Plugin {
@@ -50,10 +48,8 @@ class MyPlugin extends Plugin {
     setStatus('Started')
 
     // Emit a test delta
-    const source = new Source('my-plugin', 'plugin')
-    const timestamp = getCurrentTimestamp()
     const pathValue = new PathValue('test.value', '"hello"')
-    const update = new Update(source, timestamp, [pathValue])
+    const update = new Update([pathValue])
     const delta = new Delta('vessels.self', [update])
     emit(delta)
 
@@ -253,10 +249,10 @@ const delta = new Delta('vessels.self', [update])
 
 #### `Update`
 
-Represents an update within a delta.
+Represents an update within a delta. The server automatically adds `$source` and `timestamp`.
 
 ```typescript
-const update = new Update(source, timestamp, [pathValue])
+const update = new Update([pathValue])
 ```
 
 #### `PathValue`
@@ -265,14 +261,6 @@ Represents a path-value pair.
 
 ```typescript
 const pathValue = new PathValue('navigation.position', positionJson)
-```
-
-#### `Source`
-
-Represents the source of data.
-
-```typescript
-const source = new Source('my-plugin', 'plugin')
 ```
 
 #### `Position`

@@ -20,27 +20,6 @@ export class Position {
 }
 
 /**
- * Source information from received deltas
- *
- * Note: When emitting deltas, plugins should NOT include source.
- * The server automatically sets $source to the plugin ID.
- * This class is only used for parsing incoming deltas in delta_handler.
- */
-export class Source {
-  label: string
-  type: string
-
-  constructor(label: string, type: string = 'plugin') {
-    this.label = label
-    this.type = type
-  }
-
-  toJSON(): string {
-    return `{"label":"${this.label}","type":"${this.type}"}`
-  }
-}
-
-/**
  * Path-value pair for delta updates
  */
 export class PathValue {
