@@ -126,7 +126,7 @@ function parseFloat64FromJson(json: string, key: string): f64 {
 
 ## Received Delta JSON Format
 
-Deltas received by `delta_handler()` include `source` and `timestamp` (added by the server):
+Deltas received by `delta_handler()` include `$source` and `timestamp` (added by the server):
 
 ```json
 {
@@ -134,12 +134,6 @@ Deltas received by `delta_handler()` include `source` and `timestamp` (added by 
   "updates": [
     {
       "$source": "n2k-on-ve.can-socket.43",
-      "source": {
-        "label": "n2k-on-ve.can-socket",
-        "type": "NMEA2000",
-        "pgn": 129039,
-        "src": "43"
-      },
       "timestamp": "2024-01-15T12:30:00.000Z",
       "values": [
         {
@@ -152,8 +146,6 @@ Deltas received by `delta_handler()` include `source` and `timestamp` (added by 
   ]
 }
 ```
-
-Note: The `source` structure varies depending on the data provider (NMEA2000, NMEA0183, plugin, etc.).
 
 ## Common Use Cases
 
