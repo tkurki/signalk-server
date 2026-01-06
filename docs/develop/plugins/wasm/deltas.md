@@ -20,7 +20,6 @@ import {
 
 // Emit a v1 delta (default - for regular navigation data)
 const tempDelta = createSimpleDelta(
-  'my-plugin',
   'environment.outside.temperature',
   '288.15'
 )
@@ -28,12 +27,15 @@ emit(tempDelta)
 
 // Emit a v2 delta (for Course API and v2-specific paths)
 const courseDelta = createSimpleDelta(
-  'my-plugin',
   'navigation.course.nextPoint',
   positionJson
 )
 emit(courseDelta, SK_VERSION_V2)
 ```
+
+**Note:** Plugins should NOT include `source` or `timestamp` in emitted deltas. The server automatically:
+- Sets `$source` to the plugin ID
+- Fills in `timestamp` with the current time
 
 ### Signal K v1 vs v2 Deltas
 
@@ -124,16 +126,17 @@ function parseFloat64FromJson(json: string, key: string): f64 {
 }
 ```
 
-## Delta JSON Format
+## Received Delta JSON Format
 
-Deltas are delivered as JSON strings with this structure:
+Deltas received by `delta_handler()` include `source` and `timestamp` (added by the server):
 
 ```json
 {
   "context": "vessels.self",
   "updates": [
     {
-      "source": { "label": "gps", "type": "NMEA2000" },
+      "$source": "n2k-on-ve.can-socket.43",
+      "source": { "label": "n2k-on-ve.can-socket", "type": "NMEA2000", "pgn": 129039, "src": "43" },
       "timestamp": "2024-01-15T12:30:00.000Z",
       "values": [
         {
@@ -146,6 +149,8 @@ Deltas are delivered as JSON strings with this structure:
   ]
 }
 ```
+
+Note: The `source` structure varies depending on the data provider (NMEA2000, NMEA0183, plugin, etc.).
 
 ## Common Use Cases
 

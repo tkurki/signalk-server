@@ -9,14 +9,12 @@ import {
   Delta,
   Update,
   PathValue,
-  Source,
   Notification,
   NotificationState,
   emit,
   setStatus,
   setError,
-  debug,
-  getCurrentTimestamp
+  debug
 } from '@signalk/assemblyscript-plugin-sdk/assembly'
 
 /**
@@ -163,16 +161,12 @@ class HelloPlugin extends Plugin {
       this.config.message
     )
 
-    const source = new Source('hello-assemblyscript', 'plugin')
-    const timestamp = getCurrentTimestamp()
-    this.logDebug(`Timestamp: ${timestamp}`)
-
     const pathValue = new PathValue(
       'notifications.hello',
       notification.toJSON()
     )
 
-    const update = new Update(source, timestamp, [pathValue])
+    const update = new Update([pathValue])
     const delta = new Delta('vessels.self', [update])
 
     emit(delta)
@@ -190,16 +184,12 @@ class HelloPlugin extends Plugin {
       "version": "0.1.0"
     }`
 
-    const source = new Source('hello-assemblyscript', 'plugin')
-    const timestamp = getCurrentTimestamp()
-    this.logDebug(`Timestamp: ${timestamp}`)
-
     const pathValue = new PathValue(
       'plugins.hello-assemblyscript.info',
       pluginInfo
     )
 
-    const update = new Update(source, timestamp, [pathValue])
+    const update = new Update([pathValue])
     const delta = new Delta('vessels.self', [update])
 
     emit(delta)
@@ -215,9 +205,6 @@ class HelloPlugin extends Plugin {
     pollCount++
     this.logDebug(`Heartbeat #${pollCount}`)
 
-    const source = new Source('hello-assemblyscript', 'plugin')
-    const timestamp = getCurrentTimestamp()
-
     const heartbeatValue = `{
       "count": ${pollCount},
       "message": "${this.config.message}",
@@ -229,7 +216,7 @@ class HelloPlugin extends Plugin {
       heartbeatValue
     )
 
-    const update = new Update(source, timestamp, [pathValue])
+    const update = new Update([pathValue])
     const delta = new Delta('vessels.self', [update])
 
     emit(delta)

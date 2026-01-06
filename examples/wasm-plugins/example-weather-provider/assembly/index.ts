@@ -20,8 +20,7 @@ import {
   setStatus,
   setError,
   debug,
-  createSimpleDelta,
-  getCurrentTimestamp
+  createSimpleDelta
 } from '@signalk/assemblyscript-plugin-sdk/assembly'
 
 import {
@@ -199,7 +198,7 @@ function fetchCurrentWeather(lat: f64, lon: f64): WeatherData | null {
   debug('Weather response: ' + json.substring(0, 200))
 
   const data = new WeatherData()
-  data.date = getCurrentTimestamp()
+  data.date = '' // Server will provide timestamp
   data.type = 'observation'
 
   // Parse main weather data
@@ -246,7 +245,7 @@ function fetchForecast(lat: f64, lon: f64, forecastType: string): WeatherData[] 
   // For this example, create mock forecast data based on current conditions
   // A real implementation would parse the OpenWeatherMap response
   const data = new WeatherData()
-  data.date = getCurrentTimestamp()
+  data.date = '' // Server will provide timestamp
   data.type = forecastType
   data.temperature = extractNumber(json, 'temp')
   data.humidity = extractNumber(json, 'humidity') / 100.0
@@ -334,9 +333,9 @@ class WeatherProviderPlugin extends Plugin {
     if (lastObservation !== null) {
       // Also emit as deltas for real-time display
       const obs = lastObservation as WeatherData
-      emit(createSimpleDelta('weather-provider-example', 'environment.outside.temperature', obs.temperature.toString()))
-      emit(createSimpleDelta('weather-provider-example', 'environment.outside.humidity', obs.humidity.toString()))
-      emit(createSimpleDelta('weather-provider-example', 'environment.outside.pressure', obs.pressure.toString()))
+      emit(createSimpleDelta('environment.outside.temperature', obs.temperature.toString()))
+      emit(createSimpleDelta('environment.outside.humidity', obs.humidity.toString()))
+      emit(createSimpleDelta('environment.outside.pressure', obs.pressure.toString()))
     }
 
     setStatus('Weather provider running - data from OpenWeatherMap')

@@ -20,7 +20,11 @@ export class Position {
 }
 
 /**
- * Source information for delta updates
+ * Source information from received deltas
+ *
+ * Note: When emitting deltas, plugins should NOT include source.
+ * The server automatically sets $source to the plugin ID.
+ * This class is only used for parsing incoming deltas in delta_handler.
  */
 export class Source {
   label: string
@@ -54,16 +58,16 @@ export class PathValue {
 }
 
 /**
- * Delta update containing source, timestamp, and values
+ * Delta update containing values
+ *
+ * Note: Plugins should NOT include source or timestamp when emitting deltas.
+ * The server automatically sets $source to the plugin ID and fills in
+ * timestamp with the current time.
  */
 export class Update {
-  source: Source
-  timestamp: string
   values: PathValue[]
 
-  constructor(source: Source, timestamp: string, values: PathValue[]) {
-    this.source = source
-    this.timestamp = timestamp
+  constructor(values: PathValue[]) {
     this.values = values
   }
 
@@ -75,7 +79,7 @@ export class Update {
     }
     valuesJson += ']'
 
-    return `{"source":${this.source.toJSON()},"timestamp":"${this.timestamp}","values":${valuesJson}}`
+    return `{"values":${valuesJson}}`
   }
 }
 
@@ -155,25 +159,16 @@ export class Notification {
 }
 
 /**
- * Helper to get current ISO timestamp
- */
-export function getCurrentTimestamp(): string {
-  // In WASM environment, this would need to be provided by host
-  // For now, return a placeholder (AssemblyScript doesn't have Date)
-  return '2025-01-01T00:00:00.000Z'
-}
-
-/**
  * Helper to create a simple delta with single value
+ *
+ * The server automatically adds $source (plugin ID) and timestamp.
+ * Plugins should not include these fields.
+ *
+ * @param path Signal K path (e.g., 'environment.outside.temperature')
+ * @param value JSON-encoded value (e.g., '288.15' or '{"latitude":60,"longitude":24}')
  */
-export function createSimpleDelta(
-  label: string,
-  path: string,
-  value: string
-): Delta {
-  const source = new Source(label, 'plugin')
-  const timestamp = getCurrentTimestamp()
+export function createSimpleDelta(path: string, value: string): Delta {
   const pathValue = new PathValue(path, value)
-  const update = new Update(source, timestamp, [pathValue])
+  const update = new Update([pathValue])
   return new Delta('vessels.self', [update])
 }

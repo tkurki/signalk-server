@@ -21,18 +21,12 @@ export declare enum NotificationMethod {
   sound,
 }
 /**
- * assembly/signalk/getCurrentTimestamp
- * @returns `~lib/string/String`
- */
-export declare function getCurrentTimestamp(): string;
-/**
  * assembly/signalk/createSimpleDelta
- * @param label `~lib/string/String`
  * @param path `~lib/string/String`
  * @param value `~lib/string/String`
  * @returns `assembly/signalk/Delta`
  */
-export declare function createSimpleDelta(label: string, path: string, value: string): __Internref4;
+export declare function createSimpleDelta(path: string, value: string): __Internref4;
 /** assembly/api/SK_VERSION_V1 */
 export declare const SK_VERSION_V1: {
   /** @type `i32` */

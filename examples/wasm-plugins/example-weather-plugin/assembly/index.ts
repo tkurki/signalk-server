@@ -13,8 +13,7 @@ import {
   setStatus,
   setError,
   debug,
-  createSimpleDelta,
-  getCurrentTimestamp
+  createSimpleDelta
 } from '@signalk/assemblyscript-plugin-sdk/assembly'
 
 import { hasNetworkCapability } from '@signalk/assemblyscript-plugin-sdk/assembly/network'
@@ -343,7 +342,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit test temperature (15°C)
     const tempDelta = createSimpleDelta(
-      'weather-example',
       'environment.outside.temperature',
       '288.15' // 15°C in Kelvin
     )
@@ -351,7 +349,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit test humidity (65%)
     const humDelta = createSimpleDelta(
-      'weather-example',
       'environment.outside.humidity',
       '0.65'
     )
@@ -359,7 +356,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit test pressure (101300 Pa)
     const pressDelta = createSimpleDelta(
-      'weather-example',
       'environment.outside.pressure',
       '101300'
     )
@@ -367,7 +363,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit test wind speed (5.2 m/s)
     const windSpeedDelta = createSimpleDelta(
-      'weather-example',
       'environment.wind.speedTrue',
       '5.2'
     )
@@ -375,7 +370,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit test wind direction (180° = 3.14159 radians)
     const windDirDelta = createSimpleDelta(
-      'weather-example',
       'environment.wind.directionTrue',
       '3.14159'
     )
@@ -419,8 +413,7 @@ class WeatherPlugin extends Plugin {
       return
     }
 
-    // Add timestamp and location for resource provider
-    weatherData.timestamp = getCurrentTimestamp()
+    // Add location for resource provider (timestamp will be set by server)
     weatherData.latitude = this.config.latitude
     weatherData.longitude = this.config.longitude
 
@@ -429,7 +422,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit temperature
     const tempDelta = createSimpleDelta(
-      'weather-example',
       'environment.outside.temperature',
       weatherData.temperature.toString()
     )
@@ -437,7 +429,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit humidity
     const humDelta = createSimpleDelta(
-      'weather-example',
       'environment.outside.humidity',
       (weatherData.humidity / 100.0).toString()
     )
@@ -445,7 +436,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit pressure
     const pressDelta = createSimpleDelta(
-      'weather-example',
       'environment.outside.pressure',
       weatherData.pressure.toString()
     )
@@ -453,7 +443,6 @@ class WeatherPlugin extends Plugin {
 
     // Emit wind speed
     const windSpeedDelta = createSimpleDelta(
-      'weather-example',
       'environment.wind.speedTrue',
       weatherData.windSpeed.toString()
     )
@@ -461,13 +450,12 @@ class WeatherPlugin extends Plugin {
 
     // Emit wind direction
     const windDirDelta = createSimpleDelta(
-      'weather-example',
       'environment.wind.directionTrue',
       weatherData.windDirection.toString()
     )
     emit(windDirDelta)
 
-    setStatus('Last update: ' + getCurrentTimestamp())
+    setStatus('Weather data updated')
     debug('Weather data emitted successfully')
   }
 }

@@ -85,19 +85,13 @@ async function instantiate(module, imports = {}) {
       values[values.sound = exports["NotificationMethod.sound"].valueOf()] = "sound",
       values
     ))({}),
-    getCurrentTimestamp() {
-      // assembly/signalk/getCurrentTimestamp() => ~lib/string/String
-      return __liftString(exports.getCurrentTimestamp() >>> 0);
-    },
-    createSimpleDelta(label, path, value) {
-      // assembly/signalk/createSimpleDelta(~lib/string/String, ~lib/string/String, ~lib/string/String) => assembly/signalk/Delta
-      label = __retain(__lowerString(label) || __notnull());
+    createSimpleDelta(path, value) {
+      // assembly/signalk/createSimpleDelta(~lib/string/String, ~lib/string/String) => assembly/signalk/Delta
       path = __retain(__lowerString(path) || __notnull());
       value = __lowerString(value) || __notnull();
       try {
-        return __liftInternref(exports.createSimpleDelta(label, path, value) >>> 0);
+        return __liftInternref(exports.createSimpleDelta(path, value) >>> 0);
       } finally {
-        __release(label);
         __release(path);
       }
     },
@@ -214,7 +208,6 @@ export const {
   memory,
   NotificationState,
   NotificationMethod,
-  getCurrentTimestamp,
   createSimpleDelta,
   SK_VERSION_V1,
   SK_VERSION_V2,

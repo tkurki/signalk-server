@@ -507,14 +507,16 @@ pub extern "C" fn http_post_drop(
 fn emit_anchor_state(enabled: bool, lat: f64, lon: f64, radius: f64) {
     let state_value = if enabled { "on" } else { "off" };
 
+    // Note: Do not include source or timestamp - the server automatically sets
+    // $source to the plugin ID and fills in timestamp with current time.
     let delta = if enabled && (lat != 0.0 || lon != 0.0) {
         format!(
-            r#"{{"context":"vessels.self","updates":[{{"source":{{"label":"anchor-watch-rust"}},"values":[{{"path":"navigation.anchor.position","value":{{"latitude":{},"longitude":{}}}}},{{"path":"navigation.anchor.maxRadius","value":{}}},{{"path":"navigation.anchor.state","value":"{}"}}]}}]}}"#,
+            r#"{{"context":"vessels.self","updates":[{{"values":[{{"path":"navigation.anchor.position","value":{{"latitude":{},"longitude":{}}}}},{{"path":"navigation.anchor.maxRadius","value":{}}},{{"path":"navigation.anchor.state","value":"{}"}}]}}]}}"#,
             lat, lon, radius, state_value
         )
     } else {
         format!(
-            r#"{{"context":"vessels.self","updates":[{{"source":{{"label":"anchor-watch-rust"}},"values":[{{"path":"navigation.anchor.state","value":"{}"}}]}}]}}"#,
+            r#"{{"context":"vessels.self","updates":[{{"values":[{{"path":"navigation.anchor.state","value":"{}"}}]}}]}}"#,
             state_value
         )
     };
