@@ -137,16 +137,17 @@ export const getToPreferredDelta = (
   }
 
   const isPreferredValue = (
+    context: Context,
     path: Path,
-    latest: TimestampedSource,
     sourceRef: SourceRef,
     millis: number
   ) => {
     const pathPrecedences: PathPrecedences | undefined = precedences.get(path)
-
     if (!pathPrecedences) {
       return true
     }
+
+    const latest = getLatest(context, path)
 
     const latestPrecedence =
       pathPrecedences.get(latest.sourceRef) || HIGHESTPRECEDENCE
@@ -173,13 +174,9 @@ export const getToPreferredDelta = (
           if ('values' in update) {
             update.values = update.values.reduce(
               (acc: any, pathValue: PathValue) => {
-                const latest = getLatest(
-                  delta.context as Context,
-                  pathValue.path as Path
-                )
                 const isPreferred = isPreferredValue(
+                  delta.context as Context,
                   pathValue.path as Path,
-                  latest,
                   update.$source,
                   millis
                 )
