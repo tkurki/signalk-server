@@ -1,6 +1,6 @@
-import { SourceRef } from '@signalk/server-api'
-import assert from 'assert'
+import { Context, SourceRef } from '@signalk/server-api'
 import { getToPreferredDelta, SourcePrioritiesData } from '../src/deltaPriority'
+import assert from 'assert'
 import chai from 'chai'
 chai.should()
 
@@ -24,7 +24,7 @@ describe('toPreferredDelta logic', () => {
         ]
       },
       new Date(),
-      'self'
+      'self' as Context
     )
     assert(delta.updates[0].values === undefined)
   })
@@ -76,7 +76,7 @@ describe('toPreferredDelta logic', () => {
               ]
             },
             new Date(),
-            'self'
+            'self' as Context
           )
         )
       }, totalDelay)
@@ -107,7 +107,7 @@ describe('toPreferredDelta logic', () => {
           result
             .filter((r) => r.updates[0].values.length > 0)
             .map((r) => r.updates[0].$source)
-            .should.eql(expectedResult)
+            .should.deep.equal(expectedResult)
           resolve(undefined)
         } catch (err) {
           reject(err)

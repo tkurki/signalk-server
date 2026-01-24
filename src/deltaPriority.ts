@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Path, SourceRef } from '@signalk/server-api'
+import { Context, Delta, hasValues, Path, PathValue, SourceRef } from '@signalk/server-api'
 import { createDebug } from './debug'
 const debug = createDebug('signalk-server:sourcepriorities')
 
@@ -10,11 +10,6 @@ interface SourcePriority {
 
 export interface SourcePrioritiesData {
   [path: string]: SourcePriority[]
-}
-
-interface PathValue {
-  path: string
-  value: any
 }
 
 interface TimestampedSource {
@@ -54,7 +49,7 @@ const toPrecedences = (sourcePrioritiesMap: {
 export type ToPreferredDelta = (
   delta: any,
   now: Date,
-  selfContext: string
+  selfContext: Context
 ) => any
 
 const getHighestPrioritySourceRef = (path: Path, sourcePrioritiesData: SourcePrioritiesData) => {
@@ -166,25 +161,25 @@ export const getToPreferredDelta = (
     return isPreferred
   }
 
-  return (delta: any, now: Date, selfContext: string) => {
+  return (delta: Delta, now: Date, selfContext: Context) => {
     if (delta.context === selfContext) {
       const millis = now.getTime()
       delta.updates &&
-        delta.updates.forEach((update: any) => {
-          if ('values' in update) {
-            update.values = update.values.reduce(
-              (acc: any, pathValue: PathValue) => {
+        delta.updates.forEach((update) => {
+          if (hasValues(update)) {
+            update.values = update.values.reduce<PathValue[]>(
+              (acc: any, pathValue) => {
                 const isPreferred = isPreferredValue(
-                  delta.context as Context,
+                  delta.context!,
                   pathValue.path as Path,
-                  update.$source,
+                  update.$source!,
                   millis
                 )
                 if (isPreferred) {
                   setLatest(
-                    delta.context as Context,
-                    pathValue.path as Path,
-                    update.$source as SourceRef,
+                    delta.context!,
+                    pathValue.path,
+                    update.$source!,
                     millis
                   )
                   acc.push(pathValue)
