@@ -17,6 +17,7 @@ import cookie from 'cookie'
 import { Server } from 'http'
 import { Socket } from 'net'
 import Primus from 'primus'
+import WebSocket from 'ws'
 import { getSourceId, getMetadata } from '@signalk/signalk-schema'
 import {
   requestAccess,
@@ -39,6 +40,7 @@ import {
   buildFlushDeltas
 } from '../LatestValuesAccumulator'
 import { getExternalPort } from '../ports'
+import { resolveDisplayUnits, getDefaultCategory } from '../unitpreferences'
 
 const debug = createDebug('signalk-server:interfaces:ws')
 const debugConnection = createDebug('signalk-server:interfaces:ws:connections')
@@ -100,6 +102,8 @@ interface Spark {
   onDisconnects: Array<() => void>
   hasServerEvents?: boolean
   isHistory?: boolean
+  wsAlive?: boolean
+  socket: WebSocket
   write: (data: unknown) => void
   end: (message?: unknown, options?: { reconnect?: boolean }) => void
   on: (event: string, handler: (data: unknown) => void) => void
@@ -205,6 +209,7 @@ interface WsAppConfig {
   settings: {
     ssl?: boolean
     wsCompression?: boolean
+    wsPingInterval?: number | false
     trustProxy?: boolean | string
   }
   maxSendBufferSize?: number
@@ -215,6 +220,7 @@ interface WsApp {
   server: unknown
   config: WsAppConfig
   selfContext: string
+  selfId: string
   securityStrategy: SecurityStrategy
   subscriptionmanager: SubscriptionManager
   historyProvider?: HistoryProvider
@@ -222,6 +228,9 @@ interface WsApp {
   signalk: {
     on: (event: string, handler: (delta: Delta) => void) => void
     removeListener: (event: string, handler: (delta: Delta) => void) => void
+  }
+  streambundle: {
+    getAvailablePaths: () => string[]
   }
   logging: {
     getLog: () => unknown[]
@@ -365,6 +374,8 @@ function wsInterface(app: WsApp): WsApi {
     start: function () {
       debug('Starting Primus/WS interface')
 
+      const wsPingInterval = app.config.settings.wsPingInterval ?? 30000
+
       let baseOptions: Record<string, unknown> = {
         transformer: 'websockets',
         pingInterval: false
@@ -396,6 +407,23 @@ function wsInterface(app: WsApp): WsApi {
 
       primuses = allWsOptions.map((primusOptions) => {
         const primus = new Primus(app.server as Server, primusOptions)
+
+        if (wsPingInterval) {
+          const interval = setInterval(() => {
+            primus.forEach((primusSpark: unknown) => {
+              const spark = primusSpark as Spark
+              if (spark.wsAlive === false) {
+                debug('heartbeat timeout for spark %s, closing', spark.id)
+                return spark.end(undefined, { reconnect: true })
+              }
+              spark.wsAlive = false
+              if (spark.socket && spark.socket.readyState === WebSocket.OPEN) {
+                spark.socket.ping()
+              }
+            })
+          }, wsPingInterval)
+          primus.once('close', () => clearInterval(interval))
+        }
 
         if (app.securityStrategy.canAuthorizeWS()) {
           primus.authorize(
@@ -436,6 +464,13 @@ function wsInterface(app: WsApp): WsApi {
               }
             }
           })
+
+          if (wsPingInterval) {
+            spark.wsAlive = true
+            spark.socket.on('pong', () => {
+              spark.wsAlive = true
+            })
+          }
 
           let onChange = (delta: Delta) => {
             const filtered = app.securityStrategy.filterReadDelta(
@@ -885,8 +920,31 @@ function handleValuesMeta(
         break
       } else {
         this.spark.sentMetaData[partialContextPathKey] = true
-        const meta = getMetadata(partialContextPathKey)
+        let meta = getMetadata(partialContextPathKey) as Record<
+          string,
+          unknown
+        > | null
         if (meta) {
+          meta = JSON.parse(JSON.stringify(meta))
+          let storedDisplayUnits = (meta as Record<string, unknown>)
+            .displayUnits as { category?: string } | undefined
+          if (!storedDisplayUnits?.category && path) {
+            const defaultCategory = getDefaultCategory(path)
+            if (defaultCategory) {
+              storedDisplayUnits = { category: defaultCategory }
+            }
+          }
+          if (storedDisplayUnits?.category) {
+            const username = this.spark.request.skPrincipal?.identifier
+            const enhanced = resolveDisplayUnits(
+              { category: storedDisplayUnits.category },
+              (meta as Record<string, unknown>).units as string | undefined,
+              username
+            )
+            if (enhanced) {
+              ;(meta as Record<string, unknown>).displayUnits = enhanced
+            }
+          }
           this.spark.write({
             context: this.context,
             updates: [
@@ -1099,6 +1157,57 @@ function handleRealtimeConnection(
   spark.onDisconnects.push(() => {
     app.signalk.removeListener('delta', onChange)
   })
+
+  if (spark.sendMetaDeltas) {
+    const onUnitPrefsChanged = (event: unknown) => {
+      const username = spark.request.skPrincipal?.identifier
+      const ev = event as { username?: string } | null
+      if (ev?.username && ev.username !== username) return
+
+      const allPaths = app.streambundle.getAvailablePaths()
+      const meta = allPaths.reduce(
+        (
+          acc: Array<{ path: string; value: Record<string, unknown> }>,
+          path: string
+        ) => {
+          const fullPath = 'vessels.self.' + path
+          const pathMeta =
+            (getMetadata(fullPath) as Record<string, unknown>) || {}
+          const category =
+            (pathMeta.displayUnits as { category?: string } | undefined)
+              ?.category || getDefaultCategory(path)
+          if (category) {
+            const displayUnits = resolveDisplayUnits(
+              { category },
+              pathMeta.units as string | undefined,
+              username
+            )
+            if (displayUnits) {
+              acc.push({ path, value: { ...pathMeta, displayUnits } })
+            }
+          }
+          return acc
+        },
+        []
+      )
+
+      if (meta.length > 0) {
+        const timestamp = new Date().toISOString()
+        spark.write({
+          context: 'vessels.' + app.selfId,
+          updates: [{ timestamp, meta }]
+        })
+      }
+    }
+
+    app.on('unitpreferencesChanged', onUnitPrefsChanged as () => void)
+    spark.onDisconnects.push(() => {
+      app.removeListener(
+        'unitpreferencesChanged',
+        onUnitPrefsChanged as () => void
+      )
+    })
+  }
 
   if (spark.request.query?.sendCachedValues !== 'false') {
     sendLatestDeltas(app, app.deltaCache, app.selfContext, spark)
