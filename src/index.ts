@@ -215,10 +215,7 @@ class Server {
         return
       }
 
-      if (_.isUndefined(app.providerStatus[providerOrPluginId])) {
-        app.providerStatus[providerOrPluginId] = {}
-      }
-      const status = app.providerStatus[providerOrPluginId]
+      const status = (app.providerStatus[providerOrPluginId] ??= {})
 
       if (status.type === 'error' && status.message !== statusMessage) {
         status.lastError = status.message
