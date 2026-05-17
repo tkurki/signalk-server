@@ -188,12 +188,12 @@ class Server {
     }
     Object.assign(app, pluginManager)
 
-    app.setPluginStatus = (providerId: string, statusMessage: string) => {
-      doSetProviderStatus(providerId, statusMessage, 'status', 'plugin')
+    app.setPluginStatus = (pluginId: string, statusMessage: string) => {
+      doSetProviderStatus(pluginId, statusMessage, 'status', 'plugin')
     }
 
-    app.setPluginError = (providerId: string, errorMessage: string) => {
-      doSetProviderStatus(providerId, errorMessage, 'error', 'plugin')
+    app.setPluginError = (pluginId: string, errorMessage: string) => {
+      doSetProviderStatus(pluginId, errorMessage, 'error', 'plugin')
     }
 
     app.setProviderStatus = (providerId: string, statusMessage: string) => {
@@ -205,20 +205,20 @@ class Server {
     }
 
     function doSetProviderStatus(
-      providerId: string,
+      providerOrPluginId: string,
       statusMessage: string,
       type: 'error' | 'status',
       statusType: 'provider' | 'plugin' = 'provider'
     ) {
       if (!statusMessage) {
-        delete app.providerStatus[providerId]
+        delete app.providerStatus[providerOrPluginId]
         return
       }
 
-      if (_.isUndefined(app.providerStatus[providerId])) {
-        app.providerStatus[providerId] = {}
+      if (_.isUndefined(app.providerStatus[providerOrPluginId])) {
+        app.providerStatus[providerOrPluginId] = {}
       }
-      const status = app.providerStatus[providerId]
+      const status = app.providerStatus[providerOrPluginId]
 
       if (status.type === 'error' && status.message !== statusMessage) {
         status.lastError = status.message
@@ -226,7 +226,7 @@ class Server {
       }
 
       status.type = type
-      status.id = providerId
+      status.id = providerOrPluginId
       status.statusType = statusType
       status.timeStamp = new Date().toISOString()
 
