@@ -207,8 +207,8 @@ class Server {
     function doSetProviderStatus(
       providerId: string,
       statusMessage: string,
-      type: string,
-      statusType = 'provider'
+      type: 'error' | 'status',
+      statusType: 'provider' | 'plugin' = 'provider'
     ) {
       if (!statusMessage) {
         delete app.providerStatus[providerId]
