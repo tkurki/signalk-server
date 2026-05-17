@@ -222,12 +222,12 @@ class Server {
         status.lastErrorTimeStamp = status.timeStamp
       }
 
-      status.type = type
       status.id = providerOrPluginId
+      status.type = type
       status.statusType = statusType
-      status.timeStamp = new Date().toISOString()
-
       status.message = statusMessage
+
+      status.timeStamp = new Date().toISOString()
 
       app.emit('serverevent', {
         type: 'PROVIDERSTATUS',
