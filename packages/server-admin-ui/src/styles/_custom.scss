@@ -943,3 +943,12 @@ form.rjsf {
 .app-header.navbar .theme-dropdown .dropdown-toggle svg {
   font-size: 1rem;
 }
+
+// give the custom sun (light mode) icon a heavier weight by stroking its path
+// with the same color it is filled with:
+
+.app-header.navbar svg[data-icon='sun'] path {
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}

@@ -50,10 +50,19 @@
       "charts": "resources-provider",
       "tracks": "resources-provider",
       "infolayers": "resources-provider",
-      "groups": "resources-provider"
+      "groups": "resources-provider",
+      "zeddisplay-search-areas": "resources-provider"
     }
   },
   "courseApi": {
     "apiOnly": false
+  },
+  "bleApi": {
+    "localBluetoothManaged": false,
+    "localAdapters": [],
+    "localMaxGATTSlots": 3
+  },
+  "historyApi": {
+    "defaultProvider": "kip"
   }
 }
